@@ -1,0 +1,19 @@
+[package]
+name = "ilytix"
+version = "0.2.0"
+edition = "2021"
+description = "A simple cli tool for images analysis, written in Rust."
+repository = "https://github.com/jamjamjon/ilytix"
+authors = ["Jamjamjon <jamjamjon.usls@gmail.com>"]
+license = "MIT"
+
+[dependencies]
+anyhow = "1.0.80"
+clap = { version = "4.3.19", features = ["derive"] }
+console = "0.15.8"
+walkdir = "2"
+image = {version = "0.24.7", features = ["webp-encoder"]}
+indicatif = { version = "0.17.6"}
+blockhash = "0.5.0"
+usearch = "2.8.16"
+rayon = "1.8.1"
