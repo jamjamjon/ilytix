@@ -15,7 +15,7 @@ ilytix check -i ./datasets -r -o A/B/C
 ```
 
 **Options:**  
-`-i <PATH>` Path for input file or folder.
+`-i <PATH>` Path for input file or folder.  
 `-o <PATH>` Path for setting the saving results.  
 `-r`, `--recursive` Recursively traverse folders to obtain files.  
 `--mv` Store results by moving instead of copying.
@@ -42,7 +42,7 @@ Used for deduplicating images within a folder.
 ilytix dedup -i ./datasets -r -o A/B/C
 ```
 **Options:**  
-`-i <PATH>` Path for input folder.
+`-i <PATH>` Path for input folder.  
 `-o <PATH>` Path for setting the saving results.  
 `-r`, `--recursive` Recursively traverse folders to obtain files.  
 `--mv` Store results by moving instead of copying.  
@@ -71,7 +71,7 @@ ilytix dedup -i ./datasets -r -o A/B/C
 ```
 
 # TODO
-- [X]  images integraty check
+- [X]  images integrity check
 - [X]  images de-duplicate
 - [ ]  image-image retival
 - [ ]  text-image retrival
