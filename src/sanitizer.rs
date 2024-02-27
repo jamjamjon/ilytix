@@ -1,4 +1,5 @@
 use anyhow::Result;
+use std::path::PathBuf;
 
 use crate::{
     build_pb, load_files, make_folders, ImageFiles, LOGGER, SAVEOUT_DEPRECATED, SAVEOUT_INCORRECT,
@@ -57,16 +58,12 @@ impl Sanitizer {
                     let mut saveout = saveout.clone();
                     saveout.push(SAVEOUT_VALID);
                     std::fs::create_dir_all(&saveout)?;
+
                     for f in files.v_valid.iter() {
                         pb.inc(1);
-                        let filename = f.file_name().unwrap().to_str().unwrap();
-                        let dst =
-                            format!("{}/{}", saveout.canonicalize()?.to_str().unwrap(), filename);
-                        if self.mv {
-                            std::fs::rename(f, dst)?;
-                        } else {
-                            std::fs::copy(f, dst)?;
-                        }
+                        saveout.push(f.file_name().unwrap());
+                        self.save(f, &saveout, self.mv)?;
+                        saveout.pop();
                     }
                 }
 
@@ -75,27 +72,15 @@ impl Sanitizer {
                     let mut saveout = saveout.clone();
                     saveout.push(SAVEOUT_DEPRECATED);
                     std::fs::create_dir_all(&saveout)?;
-                    for f in files.map_deprecated_imerr.keys() {
+                    for f in files
+                        .map_deprecated_imerr
+                        .keys()
+                        .chain(files.map_deprecated_ioerr.keys())
+                    {
                         pb.inc(1);
-                        let filename = f.file_name().unwrap().to_str().unwrap();
-                        let dst =
-                            format!("{}/{}", saveout.canonicalize()?.to_str().unwrap(), filename);
-                        if self.mv {
-                            std::fs::rename(f, dst)?;
-                        } else {
-                            std::fs::copy(f, dst)?;
-                        }
-                    }
-                    for f in files.map_deprecated_ioerr.keys() {
-                        pb.inc(1);
-                        let filename = f.file_name().unwrap().to_str().unwrap();
-                        let dst =
-                            format!("{}/{}", saveout.canonicalize()?.to_str().unwrap(), filename);
-                        if self.mv {
-                            std::fs::rename(f, dst)?;
-                        } else {
-                            std::fs::copy(f, dst)?;
-                        }
+                        saveout.push(f.file_name().unwrap());
+                        self.save(f, &saveout, self.mv)?;
+                        saveout.pop();
                     }
                 }
 
@@ -107,36 +92,18 @@ impl Sanitizer {
                     saveout_rectified.push(SAVEOUT_RECTIFIED);
                     std::fs::create_dir_all(&saveout_incorrect)?;
                     std::fs::create_dir_all(&saveout_rectified)?;
+
                     for (f, filename) in files.map_incorrect_suffix.iter() {
                         pb.inc(1);
-                        let img = image::io::Reader::open(f)?
-                            .with_guessed_format()?
-                            .decode()?;
-                        let dst = format!(
-                            "{}/{}",
-                            saveout_rectified.canonicalize()?.to_str().unwrap(),
-                            filename
-                        );
-                        match img.save(dst) {
-                            Ok(_) => {
-                                let filename = f.file_name().unwrap().to_str().unwrap();
-                                let dst = format!(
-                                    "{}/{}",
-                                    saveout_incorrect.canonicalize()?.to_str().unwrap(),
-                                    filename
-                                );
-                                if self.mv {
-                                    std::fs::rename(f, dst)?;
-                                } else {
-                                    std::fs::copy(f, dst)?;
-                                }
-                            }
-                            Err(e) => LOGGER.warn(
-                                "Failed to save",
-                                &format!("{}", e),
-                                &format!("{}", f.display()),
-                            ),
-                        }
+                        // save incorrect
+                        saveout_incorrect.push(f.file_name().unwrap());
+                        self.save(f, &saveout_incorrect, self.mv)?;
+                        saveout_incorrect.pop();
+
+                        // save rectified
+                        saveout_rectified.push(filename);
+                        self.save(f, &saveout_rectified, self.mv)?;
+                        saveout_rectified.pop();
                     }
                 }
                 pb.finish();
@@ -148,6 +115,29 @@ impl Sanitizer {
             }
         }
 
+        Ok(())
+    }
+
+    fn save(&self, src: &PathBuf, dst: &PathBuf, mv: bool) -> Result<()> {
+        if mv {
+            match std::fs::rename(src, dst) {
+                Ok(_) => {}
+                Err(e) => LOGGER.exit(
+                    "Error when moving",
+                    &format!("{}", e),
+                    &format!("{}", dst.canonicalize()?.display()),
+                ),
+            }
+        } else {
+            match std::fs::copy(src, dst) {
+                Ok(_) => {}
+                Err(e) => LOGGER.exit(
+                    "Error when copying",
+                    &format!("{}", e),
+                    &format!("{}", dst.canonicalize()?.display()),
+                ),
+            }
+        }
         Ok(())
     }
 }

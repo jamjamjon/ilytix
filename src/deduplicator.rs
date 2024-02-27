@@ -246,51 +246,20 @@ impl DeDuplicator {
                 for (idx, path) in paths.iter().enumerate() {
                     pb.inc(1);
                     let filename = path.file_name().unwrap().to_str().unwrap();
-                    let dst = if set_duplicates.contains(&idx) {
-                        format!(
-                            "{}/{}",
-                            saveout_duplicated.canonicalize()?.to_str().unwrap(),
-                            filename
-                        )
+
+                    // save
+                    if set_duplicates.contains(&idx) {
+                        saveout_duplicated.push(filename);
+                        self.save(path, &saveout_duplicated, self.mv)?;
+                        saveout_duplicated.pop();
                     } else if v_deprecated.contains(path) {
                         continue;
                     } else {
-                        format!(
-                            "{}/{}",
-                            saveout_curated.canonicalize()?.to_str().unwrap(),
-                            filename
-                        )
-                    };
-
-                    // copy or move
-                    if self.mv {
-                        std::fs::rename(path, dst)?;
-                    } else {
-                        std::fs::copy(path, dst)?;
+                        saveout_curated.push(filename);
+                        self.save(path, &saveout_curated, self.mv)?;
+                        saveout_curated.pop();
                     }
                 }
-
-                // leave it
-                // if !v_deprecated.is_empty() {
-                //     saveout_curated.pop();
-                //     saveout_curated.push(SAVEOUT_DEPRECATED);
-                //     std::fs::create_dir_all(&saveout_curated)?;
-                //     for path in v_deprecated.into_iter() {
-                //         pb.inc(1);
-                //         let filename = path.file_name().unwrap().to_str().unwrap();
-                //         let dst = format!(
-                //             "{}/{}",
-                //             saveout_curated.canonicalize()?.to_str().unwrap(),
-                //             filename
-                //         );
-                //         // copy or move
-                //         if self.mv {
-                //             std::fs::rename(path, dst)?;
-                //         } else {
-                //             std::fs::copy(path, dst)?;
-                //         }
-                //     }
-                // }
 
                 pb.finish();
 
@@ -303,6 +272,29 @@ impl DeDuplicator {
             }
         }
 
+        Ok(())
+    }
+
+    fn save(&self, src: &PathBuf, dst: &PathBuf, mv: bool) -> Result<()> {
+        if mv {
+            match std::fs::rename(src, dst) {
+                Ok(_) => {}
+                Err(e) => LOGGER.exit(
+                    "Error when moving",
+                    &format!("{}", e),
+                    &format!("{}", dst.canonicalize()?.display()),
+                ),
+            }
+        } else {
+            match std::fs::copy(src, dst) {
+                Ok(_) => {}
+                Err(e) => LOGGER.exit(
+                    "Error when copying",
+                    &format!("{}", e),
+                    &format!("{}", dst.canonicalize()?.display()),
+                ),
+            }
+        }
         Ok(())
     }
 }
