@@ -17,3 +17,4 @@ const SAVEOUT_VALID: &str = "Intact";
 const SAVEOUT_DEPRECATED: &str = "Deprecated Or Unsupported";
 const SAVEOUT_DUPLICATED: &str = "Duplicated";
 const SAVEOUT_CURATED: &str = "Curated";
+const SAVEOUT_FILTERED: &str = "Filtered";

@@ -25,11 +25,9 @@ pub struct DeDuplicator {
     #[arg(short, long, value_enum, default_value_t = Method::BlockHash)]
     method: Method,
 
-    #[arg(long, default_value_t = 28.0f32)]
+    /// The smaller this parameter is, the lower the tolerance
+    #[arg(long, default_value_t = 3.0f32)]
     thresh: f32,
-
-    #[arg(long, default_value_t = 100)]
-    topk: usize,
 
     #[arg(short, long)]
     verbose: bool,
@@ -133,7 +131,14 @@ impl DeDuplicator {
 
     pub fn run(&self) -> Result<()> {
         // load all files, make sure that all paths is valid image
-        let paths = load_files(&self.input, self.recursive, false)?;
+        let mut paths = load_files(&self.input, self.recursive, false)?;
+
+        // sort by file size
+        paths.sort_by(|a, b| {
+            let size_a = std::fs::metadata(a).unwrap().len();
+            let size_b = std::fs::metadata(b).unwrap().len();
+            size_b.partial_cmp(&size_a).unwrap()
+        });
 
         // build index & extract all images feats
         let (index, v_deprecated) = self.build_then_register(&paths)?;
@@ -143,7 +148,7 @@ impl DeDuplicator {
 
         // feat buffer
         let mut feats: [f32; 32] = [0.0f32; 32];
-        for (idx, path) in paths.iter().enumerate() {
+        for (idx, _path) in paths.iter().enumerate() {
             pb.inc(1);
 
             // non-image
@@ -156,26 +161,15 @@ impl DeDuplicator {
                 continue;
             }
 
-            // get feats
-            index.get(idx as u64, &mut feats)?;
-            let matches = index.search(&feats, self.topk)?;
-
             // filter
-            let file_size = std::fs::metadata(path).unwrap().len();
+            index.get(idx as u64, &mut feats)?;
+            let matches = index.search(&feats, index.size())?;
             for (&key, &dist) in matches.keys.iter().zip(matches.distances.iter()) {
-                // skip self
                 if key == idx as u64 {
                     continue;
                 }
-
-                // filter
                 if dist <= self.thresh {
-                    // select the one with bigger size
-                    if file_size >= std::fs::metadata(&paths[key as usize]).unwrap().len() {
-                        set_duplicates.insert(key as usize);
-                    } else {
-                        set_duplicates.insert(idx);
-                    }
+                    set_duplicates.insert(key as usize);
                 }
             }
         }

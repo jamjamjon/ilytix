@@ -2,8 +2,8 @@ use anyhow::Result;
 use std::path::PathBuf;
 
 use crate::{
-    build_pb, load_files, make_folders, ImageFiles, LOGGER, SAVEOUT_DEPRECATED, SAVEOUT_INCORRECT,
-    SAVEOUT_RECTIFIED, SAVEOUT_VALID,
+    build_pb, load_files, make_folders, ImageFiles, LOGGER, SAVEOUT_DEPRECATED, SAVEOUT_FILTERED,
+    SAVEOUT_INCORRECT, SAVEOUT_RECTIFIED, SAVEOUT_VALID,
 };
 
 #[derive(clap::Parser, Debug)]
@@ -19,8 +19,12 @@ pub struct Sanitizer {
 
     #[arg(short, long)]
     mv: bool,
-    // #[arg(short, long)]
-    // verbose: bool,
+
+    #[arg(long, default_value_t = 0)]
+    min_width: u32,
+
+    #[arg(long, default_value_t = 0)]
+    min_height: u32,
 }
 
 impl Sanitizer {
@@ -53,17 +57,30 @@ impl Sanitizer {
                 );
                 let saveout = make_folders(output)?;
 
+                // build saveout_filtered
+                let mut saveout_filtered = saveout.clone();
+                saveout_filtered.push(SAVEOUT_FILTERED);
+                std::fs::create_dir_all(&saveout_filtered)?;
+                let mut n_filtered = 0;
+
                 // deal with valid
                 if !files.v_valid.is_empty() {
                     let mut saveout = saveout.clone();
                     saveout.push(SAVEOUT_VALID);
                     std::fs::create_dir_all(&saveout)?;
 
-                    for f in files.v_valid.iter() {
+                    for (f, w, h) in files.v_valid.iter() {
                         pb.inc(1);
-                        saveout.push(f.file_name().unwrap());
-                        self.save(f, &saveout, self.mv)?;
-                        saveout.pop();
+                        if w >= &self.min_width && h >= &self.min_height {
+                            saveout.push(f.file_name().unwrap());
+                            self.save(f, &saveout, self.mv)?;
+                            saveout.pop();
+                        } else {
+                            saveout_filtered.push(f.file_name().unwrap());
+                            self.save(f, &saveout_filtered, self.mv)?;
+                            saveout_filtered.pop();
+                            n_filtered += 1;
+                        }
                     }
                 }
 
@@ -93,7 +110,7 @@ impl Sanitizer {
                     std::fs::create_dir_all(&saveout_incorrect)?;
                     std::fs::create_dir_all(&saveout_rectified)?;
 
-                    for (f, filename) in files.map_incorrect_suffix.iter() {
+                    for (f, (filename, w, h)) in files.map_incorrect_suffix.iter() {
                         pb.inc(1);
                         // save incorrect
                         saveout_incorrect.push(f.file_name().unwrap());
@@ -101,12 +118,29 @@ impl Sanitizer {
                         saveout_incorrect.pop();
 
                         // save rectified
-                        saveout_rectified.push(filename);
-                        self.save(f, &saveout_rectified, self.mv)?;
-                        saveout_rectified.pop();
+                        if w >= &self.min_width && h >= &self.min_height {
+                            saveout_rectified.push(filename);
+                            self.save(f, &saveout_rectified, self.mv)?;
+                            saveout_rectified.pop();
+                        } else {
+                            saveout_filtered.push(filename);
+                            self.save(f, &saveout_filtered, self.mv)?;
+                            saveout_filtered.pop();
+                            n_filtered += 1;
+                        }
                     }
                 }
                 pb.finish();
+
+                // clean up
+                if self.min_width != 0 || self.min_height != 0 {
+                    if n_filtered == 0 {
+                        std::fs::remove_dir_all(saveout_filtered)?;
+                    }
+                    LOGGER.success("Images filtered out", "", "");
+                    LOGGER.success("", "Based on width and height", &format!("x{}", n_filtered));
+                }
+
                 LOGGER.success(
                     "Results saved at",
                     &format!("{}", saveout.canonicalize()?.display()),

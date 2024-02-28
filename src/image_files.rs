@@ -1,15 +1,15 @@
+use crate::{build_pb, LOGGER, SAVEOUT_DEPRECATED, SAVEOUT_INCORRECT, SAVEOUT_VALID};
 use anyhow::Result;
+use image::GenericImageView;
 use std::collections::HashMap;
 use std::path::PathBuf;
-
-use crate::{build_pb, LOGGER, SAVEOUT_DEPRECATED, SAVEOUT_INCORRECT, SAVEOUT_VALID};
 
 #[derive(Debug)]
 pub struct ImageFiles {
     pub map_deprecated_ioerr: HashMap<PathBuf, std::io::Error>,
     pub map_deprecated_imerr: HashMap<PathBuf, image::ImageError>,
-    pub map_incorrect_suffix: HashMap<PathBuf, String>,
-    pub v_valid: Vec<PathBuf>,
+    pub map_incorrect_suffix: HashMap<PathBuf, (String, u32, u32)>,
+    pub v_valid: Vec<(PathBuf, u32, u32)>,
 }
 impl ImageFiles {
     pub fn new(paths: &[PathBuf]) -> Result<Self> {
@@ -17,9 +17,9 @@ impl ImageFiles {
 
         // classify files
         let mut map_deprecated_ioerr: HashMap<PathBuf, std::io::Error> = HashMap::new();
-        let mut map_deprecated_imerr: HashMap<PathBuf, image::ImageError> = HashMap::new(); // might be other type files
-        let mut map_incorrect_suffix: HashMap<PathBuf, String> = HashMap::new(); // pathBuf: correct suffix / filename
-        let mut v_valid: Vec<PathBuf> = Vec::new();
+        let mut map_deprecated_imerr: HashMap<PathBuf, image::ImageError> = HashMap::new();
+        let mut map_incorrect_suffix: HashMap<PathBuf, (String, u32, u32)> = HashMap::new();
+        let mut v_valid: Vec<(PathBuf, u32, u32)> = Vec::new();
         for y in paths.iter() {
             pb.inc(1);
             match image::io::Reader::open(y) {
@@ -29,7 +29,9 @@ impl ImageFiles {
                         Ok(reader_guessed) => {
                             let format_guessed = reader_guessed.format();
                             match reader_guessed.decode() {
-                                Ok(_img) => {
+                                Ok(img) => {
+                                    // w, h
+                                    let (width, height) = img.dimensions();
                                     // save original path & correct suffix
                                     if format_guessed != format_given {
                                         let src_filestem = y.file_stem().unwrap().to_str().unwrap();
@@ -40,9 +42,12 @@ impl ImageFiles {
                                             .collect();
                                         let _suffix = mime.last().unwrap();
                                         let dst = format!("{}.{}", src_filestem, _suffix); // filename supposed
-                                        map_incorrect_suffix.insert(y.canonicalize()?, dst.clone());
+                                        map_incorrect_suffix.insert(
+                                            y.canonicalize()?,
+                                            (dst.clone(), width, height),
+                                        );
                                     } else {
-                                        v_valid.push(y.canonicalize()?);
+                                        v_valid.push((y.canonicalize()?, width, height));
                                     }
                                 }
                                 Err(e) => {
