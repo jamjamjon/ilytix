@@ -5,6 +5,41 @@ use walkdir::WalkDir;
 
 use crate::LOGGER;
 
+pub fn hash2decial(s_hash: &str) -> Result<Vec<f32>> {
+    let s_hash = s_hash.chars().collect::<Vec<_>>();
+    let s = s_hash
+        .chunks(2)
+        .map(|c| {
+            let c = c.iter().collect::<String>();
+            u8::from_str_radix(&c, 16).unwrap() as f32
+        })
+        .collect::<Vec<f32>>();
+    Ok(s)
+}
+
+pub fn src2dst(src: &PathBuf, dst: &PathBuf, mv: bool) -> Result<()> {
+    if mv {
+        match std::fs::rename(src, dst) {
+            Ok(_) => {}
+            Err(e) => LOGGER.exit(
+                "Error when moving",
+                &format!("{}", e),
+                &format!("{}", dst.canonicalize()?.display()),
+            ),
+        }
+    } else {
+        match std::fs::copy(src, dst) {
+            Ok(_) => {}
+            Err(e) => LOGGER.exit(
+                "Error when copying",
+                &format!("{}", e),
+                &format!("{}", dst.canonicalize()?.display()),
+            ),
+        }
+    }
+    Ok(())
+}
+
 pub fn make_folders<P: AsRef<Path>>(p: P) -> Result<PathBuf> {
     let p = p.as_ref();
     let mut saveout = p.to_path_buf();
@@ -41,13 +76,15 @@ pub fn load_files<P: AsRef<Path>>(
     source: P,
     recursive: bool,
     hidden_include: bool,
+    prefix: Option<&str>,
 ) -> Result<Vec<PathBuf>> {
     let source = source.as_ref();
+    let prefix = prefix.unwrap_or("Source");
     if !source.exists() {
-        LOGGER.exit("Source", " Not Exist", source.to_str().unwrap());
+        LOGGER.exit(prefix, " Not Exist", source.to_str().unwrap());
     }
     if source.is_symlink() {
-        LOGGER.exit("Source", " Is Symlink", source.to_str().unwrap());
+        LOGGER.exit(prefix, " Is Symlink", source.to_str().unwrap());
     }
     let ys = if source.is_file() {
         ("File", vec![source.to_path_buf()])
@@ -89,7 +126,7 @@ pub fn load_files<P: AsRef<Path>>(
         ("Folder", ys)
     };
     let source = source.canonicalize()?;
-    LOGGER.success("Source", source.to_str().unwrap(), ys.0);
+    LOGGER.success(prefix, source.to_str().unwrap(), ys.0);
     LOGGER.success("Recursively", &format!("{:?}", &recursive), "");
     Ok(ys.1)
 }
@@ -154,6 +191,6 @@ impl Logger {
     }
     pub fn exit(&self, t1: &str, t2: &str, prompt: &str) {
         self._log_base(LoggerKind::Fail, t1, t2, prompt);
-        std::process::exit(0);
+        std::process::exit(1);
     }
 }

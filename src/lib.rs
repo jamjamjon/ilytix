@@ -1,12 +1,16 @@
 mod cli;
 mod deduplicator;
 mod image_files;
+mod method;
+mod retrival;
 mod sanitizer;
 mod utils;
 
 pub use cli::{Cli, Task};
 pub use deduplicator::DeDuplicator;
 pub use image_files::ImageFiles;
+pub use method::Method;
+pub use retrival::Retrival;
 pub use sanitizer::Sanitizer;
 pub use utils::*;
 

@@ -1,9 +1,8 @@
 use anyhow::Result;
-use std::path::PathBuf;
 
 use crate::{
-    build_pb, load_files, make_folders, ImageFiles, LOGGER, SAVEOUT_DEPRECATED, SAVEOUT_FILTERED,
-    SAVEOUT_INCORRECT, SAVEOUT_RECTIFIED, SAVEOUT_VALID,
+    build_pb, load_files, make_folders, src2dst, ImageFiles, LOGGER, SAVEOUT_DEPRECATED,
+    SAVEOUT_FILTERED, SAVEOUT_INCORRECT, SAVEOUT_RECTIFIED, SAVEOUT_VALID,
 };
 
 #[derive(clap::Parser, Debug)]
@@ -29,11 +28,8 @@ pub struct Sanitizer {
 
 impl Sanitizer {
     pub fn run(&self) -> Result<()> {
-        // load all files
-        let paths = load_files(&self.input, self.recursive, false)?;
+        let paths = load_files(&self.input, self.recursive, false, None)?;
         let files = ImageFiles::new(&paths)?;
-
-        // early return
         if files.is_ok() {
             println!("\n🎉 All the images appear to be intact and accurate.");
             return Ok(());
@@ -42,17 +38,17 @@ impl Sanitizer {
         // save
         match &self.output {
             None => LOGGER.exit(
-                "Results save at",
-                "None",
+                "Results",
+                "Not Saving",
                 "Use `-o <PATH>` to set the save location",
             ),
             Some(output) => {
                 let pb = build_pb(
                     files.n_total() as u64,
                     if !self.mv {
-                        "Saving(Copy)"
+                        "Saving[Copy]"
                     } else {
-                        "Saving(Move)"
+                        "Saving[Move]"
                     },
                 );
                 let saveout = make_folders(output)?;
@@ -73,11 +69,11 @@ impl Sanitizer {
                         pb.inc(1);
                         if w >= &self.min_width && h >= &self.min_height {
                             saveout.push(f.file_name().unwrap());
-                            self.save(f, &saveout, self.mv)?;
+                            src2dst(f, &saveout, self.mv)?;
                             saveout.pop();
                         } else {
                             saveout_filtered.push(f.file_name().unwrap());
-                            self.save(f, &saveout_filtered, self.mv)?;
+                            src2dst(f, &saveout_filtered, self.mv)?;
                             saveout_filtered.pop();
                             n_filtered += 1;
                         }
@@ -96,7 +92,7 @@ impl Sanitizer {
                     {
                         pb.inc(1);
                         saveout.push(f.file_name().unwrap());
-                        self.save(f, &saveout, self.mv)?;
+                        src2dst(f, &saveout, self.mv)?;
                         saveout.pop();
                     }
                 }
@@ -114,17 +110,17 @@ impl Sanitizer {
                         pb.inc(1);
                         // save incorrect
                         saveout_incorrect.push(f.file_name().unwrap());
-                        self.save(f, &saveout_incorrect, self.mv)?;
+                        src2dst(f, &saveout_incorrect, self.mv)?;
                         saveout_incorrect.pop();
 
                         // save rectified
                         if w >= &self.min_width && h >= &self.min_height {
                             saveout_rectified.push(filename);
-                            self.save(f, &saveout_rectified, self.mv)?;
+                            src2dst(f, &saveout_rectified, self.mv)?;
                             saveout_rectified.pop();
                         } else {
                             saveout_filtered.push(filename);
-                            self.save(f, &saveout_filtered, self.mv)?;
+                            src2dst(f, &saveout_filtered, self.mv)?;
                             saveout_filtered.pop();
                             n_filtered += 1;
                         }
@@ -132,15 +128,20 @@ impl Sanitizer {
                 }
                 pb.finish();
 
-                // clean up
-                if self.min_width != 0 || self.min_height != 0 {
-                    if n_filtered == 0 {
-                        std::fs::remove_dir_all(saveout_filtered)?;
-                    }
-                    LOGGER.success("Images filtered out", "", "");
-                    LOGGER.success("", "Based on width and height", &format!("x{}", n_filtered));
+                // cleanup
+                if n_filtered == 0 {
+                    std::fs::remove_dir_all(saveout_filtered)?;
                 }
-
+                if self.min_width != 0 || self.min_height != 0 {
+                    LOGGER.success("Images filtered out", &format!("x{}", n_filtered), "");
+                    if self.min_width != 0 {
+                        LOGGER.success("", "Min width", &format!("{}", self.min_width));
+                    }
+                    if self.min_width != 0 {
+                        LOGGER.success("", "Min height", &format!("{}", self.min_height));
+                    }
+                }
+                // saveout
                 LOGGER.success(
                     "Results saved at",
                     &format!("{}", saveout.canonicalize()?.display()),
@@ -149,29 +150,6 @@ impl Sanitizer {
             }
         }
 
-        Ok(())
-    }
-
-    fn save(&self, src: &PathBuf, dst: &PathBuf, mv: bool) -> Result<()> {
-        if mv {
-            match std::fs::rename(src, dst) {
-                Ok(_) => {}
-                Err(e) => LOGGER.exit(
-                    "Error when moving",
-                    &format!("{}", e),
-                    &format!("{}", dst.canonicalize()?.display()),
-                ),
-            }
-        } else {
-            match std::fs::copy(src, dst) {
-                Ok(_) => {}
-                Err(e) => LOGGER.exit(
-                    "Error when copying",
-                    &format!("{}", e),
-                    &format!("{}", dst.canonicalize()?.display()),
-                ),
-            }
-        }
         Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use crate::{DeDuplicator, Sanitizer};
+use crate::{DeDuplicator, Retrival, Sanitizer};
 
 #[derive(clap::Subcommand, Debug)]
 pub enum Task {
@@ -8,11 +8,11 @@ pub enum Task {
     /// Images de-duplicating
     Dedup(DeDuplicator),
 
-    /// TODO
-    Caption,
+    /// Image-Image supported. TODO: Text-Image
+    Retrive(Retrival),
 
     /// TODO
-    Retrival,
+    Caption,
 }
 
 #[derive(clap::Parser, Debug)]

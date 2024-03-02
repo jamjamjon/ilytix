@@ -14,6 +14,9 @@ fn main() -> Result<()> {
         Task::Dedup(x) => {
             x.run()?;
         }
+        Task::Retrive(x) => {
+            x.run()?;
+        }
         _ => {
             todo!()
         }

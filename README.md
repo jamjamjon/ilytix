@@ -67,7 +67,7 @@ ilytix dedup -i ./datasets -r -o A/B/C
     · Curated › x20
     · Deprecated Or Unsupported › x36
 
-🐢 Saving(Copy) [####################] 73/73 (100% | 0.00s | 00:00:00)
+🐢 Saving[Copy] [####################] 73/73 (100% | 0.00s | 00:00:00)
 ✔  Results saved at · /home/qweasd/Desktop/A/B/C-1
 
 ```
@@ -75,6 +75,6 @@ ilytix dedup -i ./datasets -r -o A/B/C
 # TODO
 - [X]  images integrity check
 - [X]  images de-duplicate
-- [ ]  image-image retival
+- [X]  image-image retival
 - [ ]  text-image retrival
 - [ ]  image catption
