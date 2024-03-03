@@ -17,13 +17,13 @@ ilytix check -i ./datasets -r -o A/B/C
 ```
 
 **Options:**  
-`-i <PATH>` Path for input file or folder.  
+`-i <PATH>` Path for input image or images folder.  
 `-o <PATH>` Path for setting the saving results.  
 `-r`, `--recursive` Recursively traverse folders to obtain files.  
 `--mv` Store results by moving instead of copying.
 
 **And you'll see something like this**
-```shell
+```bash
 ✔  Source · /home/qweasd/Desktop/datasets › Folder
 ✔  Recursively · true
 
@@ -33,7 +33,7 @@ ilytix check -i ./datasets -r -o A/B/C
     · Incorrect › x3
     · Deprecated Or Unsupported › x36
 
-🐢 Saving(Copy) [####################] 73/73 (100% | 0.00s | 00:00:00)
+🐢 Saving[Copy] [####################] 73/73 (100% | 0.00s | 00:00:00)
 ✔  Results saved at · /home/qweasd/Desktop/A/B/C
 ```
 
@@ -44,7 +44,7 @@ Used for deduplicating images within a folder.
 ilytix dedup -i ./datasets -r -o A/B/C
 ```
 **Options:**  
-`-i <PATH>` Path for input folder.  
+`-i <PATH>` Path for images folder.  
 `-o <PATH>` Path for setting the saving results.  
 `-r`, `--recursive` Recursively traverse folders to obtain files.  
 `--mv` Store results by moving instead of copying.  
@@ -72,9 +72,39 @@ ilytix dedup -i ./datasets -r -o A/B/C
 
 ```
 
+## Image-Image Retrival (图片检索相似图片)
+```bash
+ilytix retrive -i <Images Folder> -r --query <Query> -v
+```
+
+**Output**
+```bash
+✔  Collection · /home/qweasd/Desktop/4test › Folder
+✔  Recursively · true
+
+🐢 Building [####################] 10,693/10,693 (100% | 0.00s | 00:00:36)
+✔  Index
+    · Capacity › 10693
+    · Size › 10677
+    · Dimensions › 32
+✔  Query · /home/qweasd/Desktop/query.png
+✔  Matched · x6
+    · /home/qweasd/Desktop/4test/clips/query (3rd copy).png
+    · /home/qweasd/Desktop/4test/clips/query (another copy).png
+    · /home/qweasd/Desktop/4test/clips/query (4th copy).png
+    · /home/qweasd/Desktop/4test/clips/query (copy).png
+    · /home/qweasd/Desktop/4test/clips/query.png
+    · /home/qweasd/Desktop/4test/clips/query (5th copy).png
+
+🐢 Saving[Copy] [####################] 6/6 (100% | 0.00s | 00:00:00)
+✔  Results saved at · /home/qweasd/Desktop/A/B
+
+```
+
+
 # TODO
 - [X]  images integrity check
 - [X]  images de-duplicate
-- [X]  image-image retival
+- [X]  image-image retrival
 - [ ]  text-image retrival
 - [ ]  image catption

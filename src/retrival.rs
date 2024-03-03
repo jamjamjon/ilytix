@@ -152,24 +152,18 @@ impl Retrival {
         // summary
         LOGGER.success("Matched", &format!("x{}", v_matched.len()), "");
         if v_matched.is_empty() {
-            // println!(
-            //     "\n No image retrived under the current threshold: {}",
-            //     self.thresh
-            // );
             LOGGER.exit("No image retrived", "--thresh", &format!("{}", self.thresh));
-            // return Ok(());
+        } else if self.verbose {
+            for &i in v_matched.iter() {
+                LOGGER.success("", paths[i].canonicalize()?.to_str().unwrap(), "");
+            }
         }
         match &self.output {
-            None => {
-                for i in v_matched.into_iter() {
-                    LOGGER.success("", paths[i].canonicalize()?.to_str().unwrap(), "");
-                }
-                LOGGER.exit(
-                    "Results",
-                    "Not Saving",
-                    "Use `-o <PATH>` to set the save location",
-                );
-            }
+            None => LOGGER.exit(
+                "Results",
+                "Not Saving",
+                "Use `-o <PATH>` to set the save location",
+            ),
             Some(output) => {
                 let pb = build_pb(
                     v_matched.len() as u64,
