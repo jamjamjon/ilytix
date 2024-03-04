@@ -63,7 +63,7 @@ impl DeDuplicator {
             };
             let feat = blockhash::blockhash256(&img);
             let mut _v_dup: Vec<(u64, PathBuf, blockhash::Blockhash256)> = Vec::new();
-            for (p, f) in &maps_curated {
+            maps_curated.iter().for_each(|(p, f)| {
                 if feat.distance(f) <= self.thresh as u32 {
                     _v_dup.push((
                         std::fs::metadata(p).unwrap().len(),
@@ -71,7 +71,7 @@ impl DeDuplicator {
                         f.to_owned(),
                     ));
                 }
-            }
+            });
 
             // deal with duplicates
             if _v_dup.is_empty() {
