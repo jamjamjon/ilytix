@@ -189,7 +189,7 @@ impl Retrival {
 
                 // summary
                 LOGGER.success(
-                    "Results saved at",
+                    "Results saved to",
                     &format!("{}", saveout.canonicalize()?.display()),
                     "",
                 );

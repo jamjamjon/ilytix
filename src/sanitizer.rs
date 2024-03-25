@@ -29,8 +29,8 @@ pub struct Sanitizer {
 impl Sanitizer {
     pub fn run(&self) -> Result<()> {
         let paths = load_files(&self.input, self.recursive, false, None)?;
-        let files = ImageFiles::new(&paths)?;
-        if files.is_ok() && self.min_width == 0 && self.min_height == 0 {
+        let files = ImageFiles::new(&paths, self.min_width, self.min_height)?;
+        if files.is_ok() {
             println!("\n🎉 All the images appear to be intact and accurate.");
             return Ok(());
         }
@@ -44,7 +44,7 @@ impl Sanitizer {
             ),
             Some(output) => {
                 let pb = build_pb(
-                    files.n_total() as u64,
+                    files.ntotal() as u64,
                     if !self.mv {
                         "Saving[Copy]"
                     } else {
@@ -53,37 +53,29 @@ impl Sanitizer {
                 );
                 let saveout = make_folders(output)?;
 
-                // build saveout_filtered
-                let mut saveout_filtered = saveout.clone();
-                saveout_filtered.push(SAVEOUT_FILTERED);
-                std::fs::create_dir_all(&saveout_filtered)?;
-                let mut n_filtered = 0;
-                let mut n_valid = 0;
-
                 // deal with valid
                 if !files.v_valid.is_empty() {
                     let mut saveout = saveout.clone();
                     saveout.push(SAVEOUT_VALID);
                     std::fs::create_dir_all(&saveout)?;
-
-                    for (f, w, h) in files.v_valid.iter() {
+                    for (f, _w, _h) in files.v_valid.iter() {
                         pb.inc(1);
-                        if w >= &self.min_width && h >= &self.min_height {
-                            saveout.push(f.file_name().unwrap());
-                            src2dst(f, &saveout, self.mv)?;
-                            saveout.pop();
-                            n_valid += 1;
-                        } else {
-                            saveout_filtered.push(f.file_name().unwrap());
-                            src2dst(f, &saveout_filtered, self.mv)?;
-                            saveout_filtered.pop();
-                            n_filtered += 1;
-                        }
+                        saveout.push(f.file_name().unwrap());
+                        src2dst(f, &saveout, self.mv)?;
+                        saveout.pop();
                     }
+                }
 
-                    // cleanup folder when no valid
-                    if n_valid == 0 {
-                        std::fs::remove_dir_all(saveout)?;
+                // deal with valid_filtered
+                if !files.v_valid_filtered.is_empty() {
+                    let mut saveout = saveout.clone();
+                    saveout.push(SAVEOUT_FILTERED);
+                    std::fs::create_dir_all(&saveout)?;
+                    for (f, _w, _h) in files.v_valid_filtered.iter() {
+                        pb.inc(1);
+                        saveout.push(f.file_name().unwrap());
+                        src2dst(f, &saveout, self.mv)?;
+                        saveout.pop();
                     }
                 }
 
@@ -112,8 +104,7 @@ impl Sanitizer {
                     saveout_rectified.push(SAVEOUT_RECTIFIED);
                     std::fs::create_dir_all(&saveout_incorrect)?;
                     std::fs::create_dir_all(&saveout_rectified)?;
-
-                    for (f, (filename, w, h)) in files.map_incorrect_suffix.iter() {
+                    for (f, (filename, _w, _h)) in files.map_incorrect_suffix.iter() {
                         pb.inc(1);
                         // save incorrect
                         saveout_incorrect.push(f.file_name().unwrap());
@@ -121,37 +112,38 @@ impl Sanitizer {
                         saveout_incorrect.pop();
 
                         // save rectified
-                        if w >= &self.min_width && h >= &self.min_height {
-                            saveout_rectified.push(filename);
-                            src2dst(f, &saveout_rectified, self.mv)?;
-                            saveout_rectified.pop();
-                        } else {
-                            saveout_filtered.push(filename);
-                            src2dst(f, &saveout_filtered, self.mv)?;
-                            saveout_filtered.pop();
-                            n_filtered += 1;
-                        }
+                        saveout_rectified.push(filename);
+                        src2dst(f, &saveout_rectified, self.mv)?;
+                        saveout_rectified.pop();
+                    }
+                }
+
+                // deal with incorrect_filtered
+                if !files.map_incorrect_suffix_filtered.is_empty() {
+                    let mut saveout_incorrect = saveout.clone();
+                    let mut saveout_filtered = saveout.clone();
+                    saveout_incorrect.push(SAVEOUT_INCORRECT);
+                    saveout_filtered.push(SAVEOUT_FILTERED);
+                    std::fs::create_dir_all(&saveout_incorrect)?;
+                    std::fs::create_dir_all(&saveout_filtered)?;
+                    for (f, (filename, _w, _h)) in files.map_incorrect_suffix_filtered.iter() {
+                        pb.inc(1);
+                        // save incorrect
+                        saveout_incorrect.push(f.file_name().unwrap());
+                        src2dst(f, &saveout_incorrect, self.mv)?;
+                        saveout_incorrect.pop();
+
+                        // rectify then save to filtered
+                        saveout_filtered.push(filename);
+                        src2dst(f, &saveout_filtered, self.mv)?;
+                        saveout_filtered.pop();
                     }
                 }
                 pb.finish();
 
-                // cleanup
-                if n_filtered == 0 {
-                    std::fs::remove_dir_all(saveout_filtered)?;
-                }
-
-                if self.min_width != 0 || self.min_height != 0 {
-                    LOGGER.success("Images filtered out", &format!("x{}", n_filtered), "");
-                    if self.min_width != 0 {
-                        LOGGER.success("", "Min width", &format!("{}", self.min_width));
-                    }
-                    if self.min_width != 0 {
-                        LOGGER.success("", "Min height", &format!("{}", self.min_height));
-                    }
-                }
-                // saveout
+                // summary
                 LOGGER.success(
-                    "Results saved at",
+                    "Results saved to",
                     &format!("{}", saveout.canonicalize()?.display()),
                     "",
                 );

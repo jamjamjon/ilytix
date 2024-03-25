@@ -34,7 +34,7 @@ ilytix check -i ./datasets -r -o A/B/C
     · Deprecated Or Unsupported › x36
 
 🐢 Saving[Copy] [####################] 73/73 (100% | 0.00s | 00:00:00)
-✔  Results saved at · /home/qweasd/Desktop/A/B/C
+✔  Results saved to · /home/qweasd/Desktop/A/B/C
 ```
 
 ## Images deduplication (图片去重)
@@ -68,7 +68,7 @@ ilytix dedup -i ./datasets -r -o A/B/C
     · Deprecated Or Unsupported › x36
 
 🐢 Saving[Copy] [####################] 73/73 (100% | 0.00s | 00:00:00)
-✔  Results saved at · /home/qweasd/Desktop/A/B/C-1
+✔  Results saved to · /home/qweasd/Desktop/A/B/C-1
 
 ```
 
@@ -97,7 +97,7 @@ ilytix retrive -i <Images Folder> -r --query <Query> -v
     · /home/qweasd/Desktop/4test/clips/query (5th copy).png
 
 🐢 Saving[Copy] [####################] 6/6 (100% | 0.00s | 00:00:00)
-✔  Results saved at · /home/qweasd/Desktop/A/B
+✔  Results saved to · /home/qweasd/Desktop/A/B
 
 ```
 

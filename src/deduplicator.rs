@@ -168,7 +168,7 @@ impl DeDuplicator {
                 }
                 pb.finish();
                 LOGGER.success(
-                    "Results saved at",
+                    "Results saved to",
                     &format!("{}", saveout.canonicalize()?.display()),
                     "",
                 );
