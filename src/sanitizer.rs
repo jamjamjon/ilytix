@@ -30,7 +30,7 @@ impl Sanitizer {
     pub fn run(&self) -> Result<()> {
         let paths = load_files(&self.input, self.recursive, false, None)?;
         let files = ImageFiles::new(&paths)?;
-        if files.is_ok() {
+        if files.is_ok() && self.min_width == 0 && self.min_height == 0 {
             println!("\n🎉 All the images appear to be intact and accurate.");
             return Ok(());
         }
@@ -58,6 +58,7 @@ impl Sanitizer {
                 saveout_filtered.push(SAVEOUT_FILTERED);
                 std::fs::create_dir_all(&saveout_filtered)?;
                 let mut n_filtered = 0;
+                let mut n_valid = 0;
 
                 // deal with valid
                 if !files.v_valid.is_empty() {
@@ -71,12 +72,18 @@ impl Sanitizer {
                             saveout.push(f.file_name().unwrap());
                             src2dst(f, &saveout, self.mv)?;
                             saveout.pop();
+                            n_valid += 1;
                         } else {
                             saveout_filtered.push(f.file_name().unwrap());
                             src2dst(f, &saveout_filtered, self.mv)?;
                             saveout_filtered.pop();
                             n_filtered += 1;
                         }
+                    }
+
+                    // cleanup folder when no valid
+                    if n_valid == 0 {
+                        std::fs::remove_dir_all(saveout)?;
                     }
                 }
 
@@ -132,6 +139,7 @@ impl Sanitizer {
                 if n_filtered == 0 {
                     std::fs::remove_dir_all(saveout_filtered)?;
                 }
+
                 if self.min_width != 0 || self.min_height != 0 {
                     LOGGER.success("Images filtered out", &format!("x{}", n_filtered), "");
                     if self.min_width != 0 {

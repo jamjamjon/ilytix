@@ -1,6 +1,6 @@
 [package]
 name = "ilytix"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 description = "A simple cli tool for images analysis, written in Rust."
 repository = "https://github.com/jamjamjon/ilytix"
