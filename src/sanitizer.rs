@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(clap::Parser, Debug)]
-pub struct Sanitizer {
+pub struct Args {
     #[arg(short, long)]
     input: String,
 
@@ -26,7 +26,7 @@ pub struct Sanitizer {
     min_height: u32,
 }
 
-impl Sanitizer {
+impl Args {
     pub fn run(&self) -> Result<()> {
         let paths = load_files(&self.input, self.recursive, false, None)?;
         let files = ImageFiles::new(&paths, self.min_width, self.min_height)?;

@@ -4,8 +4,6 @@ A simple command-line tool for visual image analysis, with features like checkin
 # Installation
 ```bash
 pip install -U ilytix
-# or
-cargo install ilytix
 ```
 
 # Getting Started

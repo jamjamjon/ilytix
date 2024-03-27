@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(clap::Parser, Debug)]
-pub struct DeDuplicator {
+pub struct Args {
     #[arg(short, long)]
     input: String,
 
@@ -32,7 +32,7 @@ pub struct DeDuplicator {
     show_deprecated: bool,
 }
 
-impl DeDuplicator {
+impl Args {
     pub fn run(&self) -> Result<()> {
         let paths = load_files(&self.input, self.recursive, false, None)?;
         let pb = build_pb(paths.len() as u64, "Deduplicating");

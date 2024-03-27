@@ -5,8 +5,6 @@ use ilytix::{Cli, Task};
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    // println!("cli=>>> {:?}", cli);
-
     match &cli.task {
         Task::Check(x) => {
             x.run()?;
@@ -21,6 +19,5 @@ fn main() -> Result<()> {
             todo!()
         }
     }
-
     Ok(())
 }

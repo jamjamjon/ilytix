@@ -11,7 +11,7 @@ pub enum Kind {
 }
 
 #[derive(clap::Parser, Debug)]
-pub struct Retrival {
+pub struct Args {
     #[arg(short, long)]
     input: String,
 
@@ -41,7 +41,7 @@ pub struct Retrival {
     verbose: bool,
 }
 
-impl Retrival {
+impl Args {
     fn build_then_register(&self, paths: &[PathBuf]) -> Result<(usearch::Index, Vec<PathBuf>)> {
         let options = match self.method {
             Method::BlockHash => IndexOptions {

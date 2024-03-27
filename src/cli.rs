@@ -1,15 +1,13 @@
-use crate::{DeDuplicator, Retrival, Sanitizer};
-
 #[derive(clap::Subcommand, Debug)]
 pub enum Task {
     /// Images integrity checking
-    Check(Sanitizer),
+    Check(crate::sanitizer::Args),
 
     /// Images de-duplicating
-    Dedup(DeDuplicator),
+    Dedup(crate::deduplicator::Args),
 
     /// Image-Image supported. TODO: Text-Image
-    Retrive(Retrival),
+    Retrive(crate::retrival::Args),
 
     /// TODO
     Caption,
